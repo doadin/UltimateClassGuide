@@ -7,7 +7,9 @@
 ## X-Website: https://wow.curseforge.com/projects/doisbis/
 ## X-Curse-Project-ID: 1488455
 ## IconTexture: Interface\AddOns\UltimateClassGuide\icon
+## SavedVariables: UltimateClassGuideSavedSettings
 
+settings.lua
 Data\Midnight\Season2\bis.lua
 Data\Midnight\Season2\stats.lua
 Data\Midnight\Season2\talents.lua
