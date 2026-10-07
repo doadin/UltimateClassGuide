@@ -1,734 +1,432 @@
-local ADDON_NAME, AddonTable = ...
+-- Define the addon namespace
+local addonName, addon = ...
 
-local idtoclass = {
-    [1] = "Warrior",
-    [2] = "Paladin",
-    [3] = "Hunter",
-    [4] = "Rogue",
-    [5] = "Priest",
-    [6] = "Death Knight",
-    [7] = "Shaman",
-    [8] = "Mage",
-    [9] = "Warlock",
-    [10] = "Monk",
-    [11] = "Druid",
-    [12] = "Demon Hunter",
-    [13] = "Evoker",
+--local addonName = "DoReadyTalentImporter" -- Replace with your addon's folder name
+local version = C_AddOns.GetAddOnMetadata(addonName, "Version")
+--print("DoReadyTalentImporter v" .. version .. " loaded.")
+
+--MapName: The MOTHERLODE!! mapid: 1010 
+--MapName: Cinderbrew Meadery mapid: 2335 
+--MapName: Darkflame Cleft mapid: 2303 
+--MapName: Priory of the Sacred Flame mapid: 2308 
+--MapName: The Rookery mapid: 2316 
+--MapName: Operation: Floodgate mapid: 2387 
+--MapName: Mechagon mapid: 1491 
+--MapName: Theater of Pain mapid: 1683
+--MapName: Undermine mapid: 2406
+
+local currentSeasonInstances = {
+    --["The Rookery"] = "Rookery",
+    --["Cinderbrew Meadery"] = "Meadery",
+    --["Darkflame Cleft"] = "Darkflame",
+    --["Priory of the Sacred Flame"] = "Priory",
+    --["Operation: Floodgate"] = "Floodgate",
+    --["Theater of Pain"] = "Theater",
+    --["Mechagon"] = "Mechagon",
+    --["The MOTHERLODE!!"] = "MOTHERLODE",
+    --["Undermine"] = "Undermine",
+    ["City of Echoes"] = "AraKara",
+    ["Eco-Dome Al'dani"] = "EcoDome",
+    ["Halls of Atonement"] = "HoA",
+    ["Operation: Floodgate"] = "Floodgate",
+    ["Priory of the Sacred Flame"] = "Priory",
+    ["Tazavesh, So'leah's Gambit"] = "Gambit",
+    ["Tazavesh, Streets of Wonder"] = "Streets",
+    ["The Dawnbreaker"] = "Dawnbreaker",
+    ["Manaforge Omega"] = "Manaforge",
+
+    ["Altar of Fangs"] = "altar-of-fangs",
+    ["Den of Nalorakk"] = "den-of-nalorakk",
+    ["Kings Rest"] = "kings-rest",
+    ["Murder Row"] = "murder-row",
+    ["Ruby Life Pools"] = "ruby-life-pools",
+    ["Sethraliss"] = "sethraliss",
+    ["The Blinding Vale"] = "the-blinding-vale",
+    ["Voidscar Arena"] = "voidscar-arena",
+    ["Nekzali"] = "nekzali",
+    ["Sentinels"] = "sentinels",
+    ["Vashnik"] = "vashnik",
+    ["Explorers"] = "explorers",
+    ["Sszorak"] = "sszorak",
+    ["The Twin Fangs"] = "the-twin-fangs",
+    ["The Coiled Altar"] = "the-coiled-altar",
+    ["Ulatek"] = "ulatek",
+    ["Nymrissa"] = "nymrissa",
 }
 
-local idtospec = {
-    --Death Knight
-    [250] = "Blood",
-    [251] = "Frost",
-    [252] = "Unholy",
-    --Demon Hunter
-    [577] = "Havoc",
-    [581] = "Vengeance",
-    --Druid
-    [102] = "Balance",
-    [103] = "Feral",
-    [104] = "Guardian",
-    [105] = "Restoration",
-    --Evoker
-    [1473] = "Augmentation",
-    [1467] = "Devastation",
-    [1468] = "Preservation",
-    --Hunter
-    [253] = "Beast Mastery",
-    [254] = "Marksmanship",
-    [255] = "Survival",
-    --Mage
-    [62] = "Arcane",
-    [63] = "Fire",
-    [64] = "Frost",
-    --Monk
-    [268] = "Brewmaster",
-    [269] = "Windwalker",
-    [270] = "Mistweaver",
-    --Paladin
-    [65] = "Holy",
-    [66] = "Protection",
-    [70] = "Retribution",
-    --Priest
-    [256] = "Discipline",
-    [257] = "Holy",
-    [258] = "Shadow",
-    --Rogue
-    [259] = "Assassination",
-    [260] = "Outlaw",
-    [261] = "Subtlety",
-    --Shaman
-    [262] = "Elemental",
-    [263] = "Enhancement",
-    [264] = "Restoration",
-    --Warlock
-    [265] = "Affliction",
-    [266] = "Demonology",
-    [267] = "Destruction",
-    --Warrior
-    [71] = "Arms",
-    [72] = "Fury",
-    [73] = "Protection",
-}
+-- Create a basic addon frame
+--local frame = CreateFrame("Frame")
 
-local function GetPlayerClassSpec()
-    local _, _, classID = UnitClass("player")
-    local specIndex = GetSpecialization()
-    local specID = specIndex and select(1, GetSpecializationInfo(specIndex))
-    local class = idtoclass[classID]
-    local specName = idtospec[specID]
-    return class, specName
-end
+-- Register the PLAYER_ENTERING_WORLD event to trigger when the player enters the game
+--frame:RegisterEvent("READY_CHECK")
 
-local function CreatePrettyBar(parent, stat, value, maxValue, y)
-    local bar = CreateFrame("StatusBar", nil, parent)
-    bar:SetPoint("TOPLEFT", 10, y)
-    bar:SetSize(300, 20)
-    bar:SetMinMaxValues(0, maxValue)
-    bar:SetValue(value)
-
-    -- Gradient texture
-    bar:SetStatusBarTexture("Interface\\TARGETINGFRAME\\UI-StatusBar")
-    bar:GetStatusBarTexture():SetHorizTile(false)
-
-    -- Color based on stat
-    local colors = {
-        ["mastery"] = {0.6, 0.2, 1},
-        ["haste"]   = {1, 0.9, 0.2},
-        ["crit"]    = {0.2, 1, 0.2},
-        ["vers"]    = {0.2, 0.6, 1},
-        ["intellect"] = {1, 0.5, 0.2},
-    }
-
-    local c = colors[string.lower(stat)] or {0.8, 0.8, 0.8}
-    bar:SetStatusBarColor(c[1], c[2], c[3])
-
-    -- Background
-    local bg = bar:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(true)
-    bg:SetColorTexture(0, 0, 0, 0.5)
-
-    -- Rounded mask (fake rounded corners)
-    local mask = bar:CreateMaskTexture()
-    mask:SetTexture("Interface\\BUTTONS\\WHITE8X8")
-    mask:SetPoint("TOPLEFT")
-    mask:SetPoint("BOTTOMRIGHT")
-    mask:SetSize(300, 20)
-    bar:GetStatusBarTexture():AddMaskTexture(mask)
-    bg:AddMaskTexture(mask)
-
-    -- Centered text
-    local fs = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    fs:SetPoint("CENTER", bar, "CENTER", 0, 0)
-    fs:SetText(stat .. "  " .. value .. " / " .. maxValue)
-
-    return bar
-end
-
-local function CreateBiSWindow()
-    local f = CreateFrame("Frame", "DoIsBisMainWindow", UIParent, "BackdropTemplate")
-    f:SetSize(500, 500)
-    f:SetPoint("CENTER")
-    f:SetBackdrop({
-        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
-        edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-        tile = true, tileSize = 16, edgeSize = 16,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 }
-    })
-    f:SetBackdropColor(0, 0, 0, 0.85)
-    f:EnableMouse(true)
-    f:SetMovable(true)
-    f:RegisterForDrag("LeftButton")
-    f:SetScript("OnDragStart", f.StartMoving)
-    f:SetScript("OnDragStop", f.StopMovingOrSizing)
-    f:Hide()
-
-    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    f.title:SetPoint("TOP", 0, -10)
-    f.title:SetText("BiS Items")
-
-    local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-    close:SetPoint("TOPRIGHT", -5, -5)
-
-    ---------------------------------------------------
-    -- TABS
-    ---------------------------------------------------
-    f.tabs = {}
-
-    local function CreateTab(parent, id, text)
-        local tab = CreateFrame("Button", nil, parent, "PanelTabButtonTemplate")
-        tab:SetID(id)
-        tab:SetText(text)
-        tab:SetScript("OnClick", function(self)
-            PanelTemplates_SetTab(parent, self:GetID())
-            parent:SelectTab(self:GetID())
-        end)
-        return tab
-    end
-
-    f.tabs[1] = CreateTab(f, 1, "Stats")
-    f.tabs[1]:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 5, 2)
-
-    f.tabs[2] = CreateTab(f, 2, "Gear")
-    f.tabs[2]:SetPoint("LEFT", f.tabs[1], "RIGHT", -20, 2)
-
-    f.tabs[3] = CreateTab(f, 3, "Trinkets")
-    f.tabs[3]:SetPoint("LEFT", f.tabs[2], "RIGHT", -20, 2)
-
-    f.tabs[4] = CreateTab(f, 4, "Talents")
-    f.tabs[4]:SetPoint("LEFT", f.tabs[3], "RIGHT", -20, 2)
-
-    PanelTemplates_SetNumTabs(f, 4)
-    PanelTemplates_SetTab(f, 1)
-
-    ---------------------------------------------------
-    -- TAB CONTENT FRAMES
-    ---------------------------------------------------
-    f.tabFrames = {}
-
-    ---------------------------------------------------
-    -- STATS TAB CONTENT FRAME (with nested tabs)
-    ---------------------------------------------------
-    f.tabFrames[1] = CreateFrame("Frame", nil, f)
-    f.tabFrames[1]:SetAllPoints(f)
-    
-    local statsFrame = f.tabFrames[1]
-    
-    ---------------------------------------------------
-    -- NESTED SUB-TABS INSIDE STATS TAB
-    ---------------------------------------------------
-    statsFrame.subTabs = {}
-    
-    local function CreateSubTab(parent, id, text)
-        local tab = CreateFrame("Button", nil, parent, "PanelTabButtonTemplate")
-        tab:SetID(id)
-        tab:SetText(text)
-        tab:SetScript("OnClick", function(self)
-            PanelTemplates_SetTab(parent, self:GetID())
-            parent:SelectSubTab(self:GetID())
-        end)
-        return tab
-    end
-    
-    statsFrame.subTabs[1] = CreateSubTab(statsFrame, 1, "M+")
-    statsFrame.subTabs[1]:SetPoint("TOPLEFT", statsFrame, "TOPLEFT", 20, -40)
-    
-    statsFrame.subTabs[2] = CreateSubTab(statsFrame, 2, "Raid")
-    statsFrame.subTabs[2]:SetPoint("LEFT", statsFrame.subTabs[1], "RIGHT", -20, 0)
-    
-    PanelTemplates_SetNumTabs(statsFrame, 2)
-    PanelTemplates_SetTab(statsFrame, 1)
-    
-    ---------------------------------------------------
-    -- SUB-TAB CONTENT FRAMES
-    ---------------------------------------------------
-    statsFrame.subFrames = {}
-    
-    statsFrame.subFrames[1] = CreateFrame("Frame", nil, statsFrame)
-    statsFrame.subFrames[1]:SetPoint("TOPLEFT", 10, -80)
-    statsFrame.subFrames[1]:SetPoint("BOTTOMRIGHT", -10, 10)
-    
-    statsFrame.subFrames[2] = CreateFrame("Frame", nil, statsFrame)
-    statsFrame.subFrames[2]:SetPoint("TOPLEFT", 10, -80)
-    statsFrame.subFrames[2]:SetPoint("BOTTOMRIGHT", -10, 10)
-    statsFrame.subFrames[2]:Hide()
-    
-    function statsFrame:SelectSubTab(id)
-        for i, frame in pairs(self.subFrames) do
-            frame:Hide()
-        end
-        self.subFrames[id]:Show()
-    end
-
-    ---------------------------------------------------
-    -- POPULATE M+ AND RAID STATS
-    ---------------------------------------------------
-    function statsFrame:SetMPlusStats(stats)
-        local frame = self.subFrames[1]
-    
-        -- Clear old children
-        for _, child in ipairs({frame:GetChildren()}) do child:Hide() end
-    
-        local y = -10
-        
-        for stat, maxValue in pairs(stats) do
-            -- Create bar
-            local statNumberG = _G["LE_UNIT_STAT_" .. string.upper(stat)]
-            if stat ~= "Strength" and stat ~= "Intellect" and stat ~= "Agility" then
-                local _, value = 0,0
-                if statNumberG then
-                    _, value, _, _ = UnitStat("player", statNumberG)
-                end
-                if stat == "Crit" then
-                    value = GetCombatRating(9)
-                end
-                if stat == "Haste" then
-                    value = GetCombatRating(18)
-                end
-                if stat == "Mastery" then
-                    value = GetCombatRating(26)
-                end
-                if stat == "Vers" then
-                    value = GetCombatRating(29)
-                end
-                CreatePrettyBar(frame, stat, value, maxValue, y)
-                y = y - 30
-            end
+-- Function to get the current map name
+function addon.GetCurrentMapName()
+    local mapName = ""
+    local uiMapID = C_Map.GetBestMapForUnit("player") -- Get the map ID for the player's current location
+    if uiMapID then
+        local mapInfo = C_Map.GetMapInfo(uiMapID) -- Get map information
+        if mapInfo and mapInfo.name then
+            mapName = mapInfo.name -- Return the map name
         end
     end
-    
-    function statsFrame:SetRaidStats(stats)
-        local frame = self.subFrames[2]
-    
-        -- Clear old children
-        for _, child in ipairs({frame:GetChildren()}) do child:Hide() end
-    
-        local y = -10
-        
-        for stat, maxValue in pairs(stats) do
-            -- Create bar
-            local statNumberG = _G["LE_UNIT_STAT_" .. string.upper(stat)]
-            if stat ~= "Strength" and stat ~= "Intellect" and stat ~= "Agility" then
-                local _, value = 0,0
-                if statNumberG then
-                    _, value, _, _ = UnitStat("player", statNumberG)
-                end
-                if stat == "Crit" then
-                    value = GetCombatRating(9)
-                end
-                if stat == "Haste" then
-                    value = GetCombatRating(18)
-                end
-                if stat == "Mastery" then
-                    value = GetCombatRating(26)
-                end
-                if stat == "Vers" then
-                    value = GetCombatRating(29)
-                end
-                CreatePrettyBar(frame, stat, value, maxValue, y)
-                y = y - 30
-            end
-        end
-    end
-
-    f.tabFrames[2] = CreateFrame("Frame", nil, f)
-    f.tabFrames[2]:SetAllPoints(f)
-    f.tabFrames[2]:Hide()
-
-    f.tabFrames[3] = CreateFrame("Frame", nil, f)
-    f.tabFrames[3]:SetAllPoints(f)
-    f.tabFrames[3]:Hide()
-
-    f.tabFrames[4] = CreateFrame("Frame", nil, f)
-    f.tabFrames[4]:SetAllPoints(f)
-    f.tabFrames[4]:Hide()
-
-    function f:SelectTab(id)
-        for i, frame in pairs(self.tabFrames) do
-            frame:Hide()
-        end
-        self.tabFrames[id]:Show()
-    end
-
-    return f
+    --print("You are currently in: " .. mapName) -- Print the map name to the chat window
+    --local configID = C_ClassTalents.GetActiveConfigID()
+    --local talID = C_ClassTalents.GetLastSelectedSavedConfigID(PlayerUtil.GetCurrentSpecID())
+    ----print("Last selected config ID:", talID) -- Print the last selected config ID
+    --local configInfo = C_Traits.GetConfigInfo(talID)
+    ----print("Config ID:", configID, "Name:", configInfo.name) -- Print the config ID and name
+    --if string.find(configInfo.name, mapName) then
+    --    print("DoReady talent profile for instance is active.")
+    --else
+    --    print("DoReady talent profile for instance is not active.")
+    --end
+    return mapName
 end
 
-local function CreateBiSScrollArea(parent)
-    local scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", 10, -40)
-    scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
+---- Event handler function
+--frame:SetScript("OnEvent", function(self, event, ...)
+--    if event == "READY_CHECK" then
+--        C_Timer.After(3, addon.GetCurrentMapName)
+--    end
+--end)
 
-    local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetPoint("TOPLEFT")
-    content:SetPoint("TOPRIGHT")
-    content:SetWidth(scrollFrame:GetWidth())  -- CRITICAL
-    content:SetHeight(1)
-    --content:SetSize(1, 1) -- will expand dynamically
-    scrollFrame:SetScrollChild(content)
-
-    return scrollFrame, content
-end
-
-
-
-local function BuildRowsForClassSpec(className, specName)
-    local rows = {}
-
-    if not AddonTable or not AddonTable.bis then
-        return rows
-    end
-
-    local classData = AddonTable.bis[className]
-    if not classData then
-        return rows
-    end
-
-    local specData = classData[specName]
-    if not specData then
-        return rows
-    end
-
-    for contentType, slot in pairs(specData) do
-        table.insert(rows, { isHeader = true, text = contentType })
-        for _,data in pairs(slot) do
-            --local itemName = data and data.id and C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(data.id)
-            --itemName = itemName or ("Item " .. tostring(data.id))
-            local itemLink = select(2, GetItemInfo(data.itemid)) or ("item:" .. data.itemid)
-            table.insert(rows, { isHeader = false, text = itemLink, itemID = data.itemid, source = data.source, sourceType = data.sourceType })
-        end
-    end
-
-    return rows
-end
-
-local function BuildTrinketRowsForClassSpec(className, specName)
-    local rows = {}
-
-    if not AddonTable or not AddonTable.trinkets then
-        return rows
-    end
-
-    local classData = AddonTable.trinkets[className]
-    if not classData then
-        return rows
-    end
-
-    local specData = classData[specName]
-    if not specData then
-        return rows
-    end
-
-    for contentType, slot in pairs(specData) do
-        table.insert(rows, { isHeader = true, text = contentType })
-        for _,data in pairs(slot) do
-            --local itemName = data and data.id and C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(data.id)
-            --itemName = itemName or ("Item " .. tostring(data.id))
-            local itemLink = select(2, GetItemInfo(data.itemid)) or ("item:" .. data.itemid)
-            table.insert(rows, { isHeader = false, text = itemLink, itemID = data.itemid, tier = contentType})
-        end
-    end
-
-    return rows
-end
-
-local function BuildTalentRowsForClassSpec(className, specName)
-    local rows = {}
-
-    if not AddonTable or not AddonTable.talents then
-        return rows
-    end
-
-    local classData = AddonTable.talents[className]
-    if not classData then
-        return rows
-    end
-
-    local specData = classData[specName]
-    if not specData then
-        return rows
-    end
-
-    for contentType, talentstring in pairs(specData) do
-        table.insert(rows, { isHeader = false, text = contentType, talentString = talentstring, tier = contentType})
-    end
-
-    return rows
-end
-
-local function PopulateScrollFrame(content, rows)
-    -- Clear old rows
-    for _, child in ipairs({ content:GetChildren() }) do
-        child:Hide()
-        child:SetParent(nil)
-    end
-
-    local yOffset = -5
-    local width = content:GetParent():GetWidth() - 20
-    --DevTools_Dump(rows)
-
-    for _, row in ipairs(rows) do
-        local rowFrame = CreateFrame("Frame", nil, content)
-        rowFrame:SetPoint("TOPLEFT", 0, yOffset)
-        rowFrame:SetPoint("TOPRIGHT", 0, yOffset)
-        rowFrame:SetHeight(row.isHeader and 24 or 18)
-        rowFrame:EnableMouse(true)
-
-        local fs = rowFrame:CreateFontString(nil, "OVERLAY", row.isHeader and "GameFontNormalLarge" or "GameFontNormal")
-        fs:SetPoint("LEFT", 5, 0)
-        fs:SetWidth(500)
-        fs:SetWordWrap(true)
-        fs:SetNonSpaceWrap(true)
-        fs:SetJustifyH("LEFT")
-        fs:SetJustifyV("TOP")
-
-        if row.isHeader then
-            fs:SetText("|cffFFD100" .. row.text .. "|r")
-            yOffset = yOffset - 26
-        else
-            if row.source then
-                fs:SetText("• " .. row.text .. " " .. row.source.. " " .. row.sourceType)
-            else
-                fs:SetText("• " .. row.text)
-            end
-
-            rowFrame:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetHyperlink(row.text)
-                GameTooltip:Show()
-            end)
-
-            rowFrame:SetScript("OnLeave", function()
-                GameTooltip:Hide()
-            end)
-
-            rowFrame:SetScript("OnMouseUp", function(self, button)
-                if button == "LeftButton" then
-                    HandleModifiedItemClick(row.text)
-                end
-            end)
-
-            yOffset = yOffset - 20
-        end
-    end
-
-    content:SetHeight(-yOffset + 10)
-
-end
-
-local function PopulateTrinketScrollFrame(content, rows)
-    -- Clear old rows
-    for _, child in ipairs({ content:GetChildren() }) do
-        child:Hide()
-        child:SetParent(nil)
-    end
-
-    local yOffset = -5
-    local width = content:GetParent():GetWidth() - 20
-
-    local tierOrder = { "S", "A", "B", "C", "D" }
-    for _, tier in ipairs(tierOrder) do
-        for _, row in ipairs(rows) do
-            if row.tier == tier then
-                local rowFrame = CreateFrame("Frame", nil, content)
-                rowFrame:SetPoint("TOPLEFT", 0, yOffset)
-                rowFrame:SetPoint("TOPRIGHT", 0, yOffset)
-                rowFrame:SetHeight(row.isHeader and 24 or 18)
-                rowFrame:EnableMouse(true)
-    
-                local fs = rowFrame:CreateFontString(nil, "OVERLAY", row.isHeader and "GameFontNormalLarge" or "GameFontNormal")
-                fs:SetPoint("LEFT", 5, 0)
-                fs:SetWidth(500)
-                fs:SetWordWrap(true)
-                fs:SetNonSpaceWrap(true)
-                fs:SetJustifyH("LEFT")
-                fs:SetJustifyV("TOP")
-    
-                if row.isHeader then
-                    fs:SetText("|cffFFD100" .. row.text .. "|r")
-                    yOffset = yOffset - 26
-                else
-                    if row.source then
-                        fs:SetText("• " .. row.text .. " " .. row.source.. " " .. row.sourceType .. " " .. row.tier)
-                    else
-                        fs:SetText("• " .. row.text .. " " .. row.tier)
-                    end
-    
-                    rowFrame:SetScript("OnEnter", function(self)
-                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                        GameTooltip:SetHyperlink(row.text)
-                        GameTooltip:Show()
-                    end)
-    
-                    rowFrame:SetScript("OnLeave", function()
-                        GameTooltip:Hide()
-                    end)
-    
-                    rowFrame:SetScript("OnMouseUp", function(self, button)
-                        if button == "LeftButton" then
-                            HandleModifiedItemClick(row.text)
-                        end
-                    end)
-    
-                    yOffset = yOffset - 20
-                end
-            end
-        end
-    end
-
-    content:SetHeight(-yOffset + 10)
-end
-
-local function formateContent(content)
-    if content:find("-") then
-        content = content:gsub("-", " ")
-        content = content:gsub("(%a)(%w*)", function(first, rest)
-            return first:upper() .. rest:lower()
-        end)
-        return content
-    else
-        content = content:gsub("(%a)(%w*)", function(first, rest)
-            return first:upper() .. rest:lower()
-        end)
-        return content
-    end
-end
-
-local function importTalentString(talentString)
-    -- Implementation for importing talent string
-    print("Importing talent string:", talentString)
-end
-
-local function PopulateTalentScrollFrame(content, rows)
-    -- Clear old rows
-    for _, child in ipairs({ content:GetChildren() }) do
-        child:Hide()
-        child:SetParent(nil)
-    end
-
-    local yOffset = -5
-    local width = content:GetParent():GetWidth() - 20
-    --DevTools_Dump(rows)
-
-    for _, row in ipairs(rows) do
-        local rowFrame = CreateFrame("Frame", nil, content)
-        rowFrame:SetPoint("TOPLEFT", 0, yOffset)
-        rowFrame:SetPoint("TOPRIGHT", 0, yOffset)
-        rowFrame:SetHeight(row.isHeader and 24 or 18)
-        rowFrame:EnableMouse(true)
-
-        if row.isHeader then
-            --fs:SetText("|cffFFD100" .. row.text .. "|r")
-            yOffset = yOffset - 26
-        else
-            local talentString = row.talentString
-            local btn = CreateFrame("Button", nil, rowFrame, "UIPanelButtonTemplate")
-            btn:SetPoint("CENTER", 0, 0)
-            btn:SetSize(150, 40)
-            btn:SetText("Import " .. formateContent(row.text))
-
-            btn:SetScript("OnClick", function(self, button, down)
-                importTalentString(talentString)
-            end)
-
-            btn:RegisterForClicks("AnyUp")
-
-            yOffset = yOffset - 40
-        end
-    end
-
-    content:SetHeight(-yOffset + 10)
-
-end
-
-
-local window
-local scrollFrame
-local content
-local TrinketscrollFrame
-local Trinketcontent
-local TalentscrollFrame
-local Talentcontent
-
-local function ShowBiSWindow()
-    if not window then
-        window = CreateBiSWindow()
-        scrollFrame, content = CreateBiSScrollArea(window.tabFrames[2])
-        TrinketscrollFrame, Trinketcontent = CreateBiSScrollArea(window.tabFrames[3])
-        TalentscrollFrame, Talentcontent = CreateBiSScrollArea(window.tabFrames[4])
-    end
-
-    local class, spec = GetPlayerClassSpec()
-    local statsData = AddonTable.stats[class][spec]
-    if statsData then
-        if statsData["M+"] then
-            window.tabFrames[1]:SetMPlusStats(statsData["M+"])
-        end
-        if statsData["R"] then
-            window.tabFrames[1]:SetRaidStats(statsData["R"])
-        end
-    end
-    if not class or not spec then
-        print("BiS: could not determine class/spec.")
+local function ImportTalentProfile(class, spec, loadoutName, importString)
+    TogglePlayerSpellsFrame()
+    --print("Importing talent profile for class:", class, "spec:", spec, "name:", loadoutName, "importString:", importString)
+    --print("Importing talent profile for class:", class, "spec:", spec, "name:", loadoutName)
+    --if class then
+    --    return
+    --end
+    local canCreate = C_ClassTalents.CanCreateNewConfig()
+    if not canCreate then
+        --print("Cannot create new config.")
         return
     end
-
-    local rows = BuildRowsForClassSpec(class, spec)
-    if #rows == 0 then
-        print("BiS: no data for " .. class .. " / " .. spec)
+    if not C_AddOns.IsAddOnLoaded("Blizzard_PlayerSpells") then
+        local loaded = C_AddOns.LoadAddOn("Blizzard_PlayerSpells")
     end
+    local configIDs = C_ClassTalents.GetConfigIDsBySpecID(PlayerUtil.GetCurrentSpecID())
+    --C_ClassTalents.RequestNewConfig(loadoutName)
 
-    PopulateScrollFrame(content, rows)
+    --for i,id in ipairs(configIDs) do
+    --    local configInfo = C_Traits.GetConfigInfo(id)
+    --    --print("Config ID:", id, "Name:", configInfo.name)
+    --    if configInfo.name == loadoutName then
+    --        local CurimportString = C_Traits.GenerateImportString(id)
+    --        print("CurimportString: ", CurimportString)
+    --        if CurimportString ~= importString then
+    --            AskLoadTalent()
+    --        end
+    --    end
+    --end
 
-    local Trinketrows = BuildTrinketRowsForClassSpec(class, spec)
-    if #Trinketrows == 0 then
-        print("BiS: no data for " .. class .. " / " .. spec)
+    local configID = C_ClassTalents.GetActiveConfigID()
+    local configInfo = C_Traits.GetConfigInfo(configID)
+    local treeID = configInfo and configInfo.treeIDs and configInfo.treeIDs[1]
+    local importStream = ExportUtil.MakeImportDataStream(importString)
+    local headerValid, serializationVersion, specID, treeHash = ClassTalentImportExportMixin:ReadLoadoutHeader(importStream)
+    if not headerValid then
+        --print("Invalid import string.")
+        return
     end
+    local loadoutContent = ClassTalentImportExportMixin:ReadLoadoutContent(importStream, treeID)
+    local loadoutEntryInfo = ClassTalentImportExportMixin:ConvertToImportLoadoutEntryInfo(configID, treeID, loadoutContent)
+    local success, err = C_ClassTalents.ImportLoadout(configID, loadoutEntryInfo, loadoutName)
+    --local success, err = ClassTalentImportExportMixin:ImportLoadout(importString,loadoutName)
+    --ClassTalentImportExportMixin:ViewLoadout(importString, 80)
+    --if not success then
+    --    print("Import failed:", err)
+    --else
+    --    print("Talent profile '" .. loadoutName .. "' imported successfully.")
+    --end
 
-    PopulateTrinketScrollFrame(Trinketcontent, Trinketrows)
+    --print("imported string: ", importString)
 
-    local Talentrows = BuildTalentRowsForClassSpec(class, spec)
-    if #Talentrows == 0 then
-        print("BiS: no data for " .. class .. " / " .. spec)
-    end
-
-    PopulateTalentScrollFrame(Talentcontent, Talentrows)
-
-    if window then
-        window.title:SetText(class .. " - " .. spec)
-        window:SelectTab(1)
-        if window:IsShown() then
-            window:Hide()
-        else
-            window:Show()
+    configIDs = C_ClassTalents.GetConfigIDsBySpecID(PlayerUtil.GetCurrentSpecID())
+    for i,id in ipairs(configIDs) do
+        local configInfo = C_Traits.GetConfigInfo(id)
+        --print("Config ID:", id, "Name:", configInfo.name)
+        if configInfo.name == loadoutName then
+            local CurimportString = C_Traits.GenerateImportString(id)
+            if CurimportString ~= addon.talents[class][string.upper(spec)][addon.GetCurrentMapName()] then
+                C_ClassTalents.DeleteConfig(id)
+                --print("cleaned up old config")
+            end
         end
     end
 end
 
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+local function AskToUpdateTalents(class, spec, loadoutName, importString, CurrentMapName)
+    -- Define the popup dialog
+    StaticPopupDialogs["UCG_UPDATE_CONFIRMATION"] = {
+        text = "Import new Talents for "  .. CurrentMapName .. "?(if accepted, don't move if change talents is casted!)",
+        button1 = "Accept",
+        button2 = "Cancel",
+        OnAccept = function()
+            --print("You accepted!")
+            ImportTalentProfile(class, spec, loadoutName, importString)
+            -- Add your logic for the "Accept" action here
+        end,
+        OnCancel = function()
+            --print("You canceled!")
+            -- Add your logic for the "Cancel" action here
+        end,
+        timeout = 0, -- No timeout
+        whileDead = true, -- Allow popup while the player is dead
+        hideOnEscape = true, -- Close the popup when pressing Escape
+        preferredIndex = 3, -- Avoid conflicts with other popups
+    }
+    -- Show the popup
+    StaticPopup_Show("UCG_UPDATE_CONFIRMATION")
+end
 
-f:SetScript("OnEvent", function() --self, event, slot, hasItem
-    local class, spec = GetPlayerClassSpec()
-    local statsData = AddonTable.stats[class][spec]
-    if statsData and window then
-        if statsData["M+"] then
-            window.tabFrames[1]:SetMPlusStats(statsData["M+"])
+local function AskToActivateTalents(configID, autoApply, CurrentMapName)
+    -- Define the popup dialog
+    StaticPopupDialogs["UCG_ACTIVATE_CONFIRMATION"] = {
+        text = "Change To Talents for "  .. CurrentMapName .. "?(if accepted, don't move if change talents is casted!)",
+        button1 = "Accept",
+        button2 = "Cancel",
+        OnAccept = function()
+            --print("You accepted!")
+            local result, changeError, newLearnedNodeIDs = C_ClassTalents.LoadConfig(configID, autoApply)
+            --print("LoadConfig result:", type(result), "Change error:", changeError, "New learned node IDs:", newLearnedNodeIDs)
+            C_ClassTalents.UpdateLastSelectedSavedConfigID(PlayerUtil.GetCurrentSpecID(), configID)
+            if result ~= 0 then
+                --print("LoadConfig success:", result)
+                C_Timer.After(3, function()
+                    C_ClassTalents.UpdateLastSelectedSavedConfigID(PlayerUtil.GetCurrentSpecID(), configID)
+                end)
+                --C_ClassTalents.UpdateLastSelectedSavedConfigID(PlayerUtil.GetCurrentSpecID(), configID)
+            end
+            -- Add your logic for the "Accept" action here
+        end,
+        OnCancel = function()
+            --print("You canceled!")
+            -- Add your logic for the "Cancel" action here
+        end,
+        timeout = 0, -- No timeout
+        whileDead = true, -- Allow popup while the player is dead
+        hideOnEscape = true, -- Close the popup when pressing Escape
+        preferredIndex = 3, -- Avoid conflicts with other popups
+    }
+    -- Show the popup
+    StaticPopup_Show("UCG_ACTIVATE_CONFIRMATION")
+end
+
+function addon:CheckTalentUpdate(class, spec, CurrentMapName, importString)
+    local configIDs = C_ClassTalents.GetConfigIDsBySpecID(PlayerUtil.GetCurrentSpecID())
+    local configUpdate = false
+    local configExists = false
+    for i,id in ipairs(configIDs) do
+        local configInfo = C_Traits.GetConfigInfo(id)
+        --print("Config ID:", id, "Name:", configInfo.name)
+        if currentSeasonInstances[CurrentMapName] then
+            if configInfo.name == "UCG " .. currentSeasonInstances[CurrentMapName] .. " " .. version then
+                local CurimportString = C_Traits.GenerateImportString(id)
+                --print("CurimportString for ", configInfo.name .. " : ", CurimportString)
+                configExists = true
+            end
         end
-        if statsData["R"] then
-            window.tabFrames[1]:SetRaidStats(statsData["R"])
+    end
+    if not configExists then
+        --print("config not found")
+        if addon.talents[class][spec][currentSeasonInstances[CurrentMapName]] then
+            --print("found update for zone")
+            configUpdate = true
         end
+    end
+    --print("ConfigUpdate: ", configUpdate)
+    if configUpdate then
+        local loadoutName = "UCG " .. currentSeasonInstances[CurrentMapName] .. " " .. version
+        AskToUpdateTalents(class, spec, loadoutName, importString, CurrentMapName)
+    end
+end
+
+local frame = CreateFrame("Frame")
+--frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:RegisterEvent("LOADING_SCREEN_DISABLED")
+frame:RegisterEvent("READY_CHECK")
+
+frame:SetScript("OnEvent", function(self, event)
+    --if not SavedSettings.automaticMode then return end
+    if event == "LOADING_SCREEN_DISABLED" then
+        local _, playerClass = UnitClass("player")
+        playerClass = playerClass:gsub("(%a)(%w*)", function(a, b)
+            return a:upper() .. b:lower()
+        end)
+        local specIndex = GetSpecialization()
+        local specID = GetSpecializationInfo(specIndex)
+        local specNames = {
+            [62] = "Arcane",
+            [63] = "Fire",
+            [64] = "Frost",
+            [65] = "Holy",
+            [66] = "Protection",
+            [70] = "Retribution",
+            [71] = "Arms",
+            [72] = "Fury",
+            [73] = "Protection",
+            [102] = "Balance",
+            [103] = "Feral",
+            [104] = "Guardian",
+            [105] = "Restoration",
+            [250] = "Blood",
+            [251] = "Frost",
+            [252] = "Unholy",
+            [253] = "Beast Mastery",
+            [254] = "Marksmanship",
+            [255] = "Survival",
+            [256] = "Discipline",
+            [257] = "Holy",
+            [258] = "Shadow",
+            [259] = "Assassination",
+            [260] = "Outlaw",
+            [261] = "Subtlety",
+            [262] = "Elemental",
+            [263] = "Enhancement",
+            [264] = "Restoration",
+            [265] = "Affliction",
+            [266] = "Demonology",
+            [267] = "Destruction",
+            [268] = "Brewmaster",
+            [269] = "Windwalker",
+            [270] = "Mistweaver",
+            [577] = "Havoc",
+            [581] = "Vengeance",
+            [1467] = "Devastation",
+            [1468] = "Preservation",
+            [1473] = "Augmentation",
+        }
+        C_Timer.After(3, function()
+            if not C_AddOns.IsAddOnLoaded("Blizzard_PlayerSpells") then
+                C_AddOns.LoadAddOn("Blizzard_PlayerSpells")
+            end
+            --for name in pairs(currentSeasonInstances) do
+            --    CheckTalentUpdate(playerClass,specNames[specID], name , addon.TalentStrings[playerClass][string.upper(specNames[specID])][name])
+            --end
+            --if addon.talents[playerClass][specNames[specID]][addon.GetCurrentMapName()] then
+            --    addon:CheckTalentUpdate(playerClass,specNames[specID], addon.GetCurrentMapName(), addon.talents[playerClass][specNames[specID]][addon.GetCurrentMapName()])
+            --end
+            local classTalents = addon.talents[playerClass]
+            local specName = specNames[specID]
+            local mapName = addon.GetCurrentMapName()
+            local mapNameTable = currentSeasonInstances[addon.GetCurrentMapName()]
+            --print("Checking talents for class:", playerClass, "spec:", specName, "map:", mapName, "mapNameTable:", mapNameTable)
+            
+            if classTalents and specName and classTalents[specName] and classTalents[specName][mapNameTable] then
+                --print("Checking talents for class:", playerClass, "spec:", specName, "map:", mapName)
+                addon:CheckTalentUpdate(playerClass, specName, mapName, classTalents[specName][mapNameTable])
+            end
+            local specID = PlayerUtil.GetCurrentSpecID()
+            if specID then
+                -- Get the ID of the last selected saved talent loadout for the current spec
+                local activeConfigID = C_ClassTalents.GetLastSelectedSavedConfigID(specID)
+                if activeConfigID then
+                    -- Get information about the active talent loadout
+                    local configInfo = C_Traits.GetConfigInfo(activeConfigID)
+                    if configInfo and configInfo.name and configInfo.name ~= loadoutName then
+                        --print("Active Talent Loadout Name: " .. configInfo.name)
+                        local configIDs = C_ClassTalents.GetConfigIDsBySpecID(PlayerUtil.GetCurrentSpecID())
+                        for i,id in ipairs(configIDs) do
+                            local configInfo = C_Traits.GetConfigInfo(id)
+                            --print("Config ID:", id, "Name:", configInfo.name)
+                            if configInfo.name == loadoutName then
+                                AskToActivateTalents(id, true, currentSeasonInstances[addon.GetCurrentMapName()])
+                            end
+                        end
+                    end
+                end
+            end
+            if addon.GetCurrentMapName() == "Tazavesh, the Veiled Market" then
+                print("DoReady Detected Tazavesh, the Veiled Market, import from gui.)")
+                addon:OpenUI("")
+            end
+        end)
+    end
+    if event == "READY_CHECK" then
+        C_Timer.After(3, function()
+            if currentSeasonInstances[addon.GetCurrentMapName()] then
+                local loadoutName = "UCG " .. currentSeasonInstances[addon.GetCurrentMapName()] .. " " .. version
+                -- Get the current specialization ID
+                local specID = PlayerUtil.GetCurrentSpecID()
+                if specID then
+                    -- Get the ID of the last selected saved talent loadout for the current spec
+                    local activeConfigID = C_ClassTalents.GetLastSelectedSavedConfigID(specID)
+                    if activeConfigID then
+                        -- Get information about the active talent loadout
+                        local configInfo = C_Traits.GetConfigInfo(activeConfigID)
+                        if configInfo and configInfo.name and configInfo.name ~= loadoutName then
+                            --print("Active Talent Loadout Name: " .. configInfo.name)
+                            local configIDs = C_ClassTalents.GetConfigIDsBySpecID(PlayerUtil.GetCurrentSpecID())
+                            for i,id in ipairs(configIDs) do
+                                local configInfo = C_Traits.GetConfigInfo(id)
+                                --print("Config ID:", id, "Name:", configInfo.name)
+                                if configInfo.name == loadoutName then
+                                    AskToActivateTalents(id, true, currentSeasonInstances[addon.GetCurrentMapName()])
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
     end
 end)
 
+addon.RecheckTalentUpdate = function()
+    local _, playerClass = UnitClass("player")
+    local specIndex = GetSpecialization()
+    local specID = GetSpecializationInfo(specIndex)
+    local specNames = {
+        [62] = "Arcane",
+        [63] = "Fire",
+        [64] = "Frost",
+        [65] = "Holy",
+        [66] = "Protection",
+        [70] = "Retribution",
+        [71] = "Arms",
+        [72] = "Fury",
+        [73] = "Protection",
+        [102] = "Balance",
+        [103] = "Feral",
+        [104] = "Guardian",
+        [105] = "Restoration",
+        [250] = "Blood",
+        [251] = "Frost",
+        [252] = "Unholy",
+        [253] = "Beast Mastery",
+        [254] = "Marksmanship",
+        [255] = "Survival",
+        [256] = "Discipline",
+        [257] = "Holy",
+        [258] = "Shadow",
+        [259] = "Assassination",
+        [260] = "Outlaw",
+        [261] = "Subtlety",
+        [262] = "Elemental",
+        [263] = "Enhancement",
+        [264] = "Restoration",
+        [265] = "Affliction",
+        [266] = "Demonology",
+        [267] = "Destruction",
+        [268] = "Brewmaster",
+        [269] = "Windwalker",
+        [270] = "Mistweaver",
+        [577] = "Havoc",
+        [581] = "Vengeance",
+        [1467] = "Devastation",
+        [1468] = "Preservation",
+        [1473] = "Augmentation",
+    }
 
-SLASH_SHOWBIS1 = "/doisbis"
-SlashCmdList.SHOWBIS = function()
-    ShowBiSWindow()
+    if not C_AddOns.IsAddOnLoaded("Blizzard_PlayerSpells") then
+        C_AddOns.LoadAddOn("Blizzard_PlayerSpells")
+    end
+    --for name in pairs(currentSeasonInstances) do
+    --    CheckTalentUpdate(playerClass,specNames[specID], name , addon.TalentStrings[playerClass][string.upper(specNames[specID])][name])
+    --end
+    addon:CheckTalentUpdate(playerClass,specNames[specID], currentSeasonInstances[addon.GetCurrentMapName()], addon.TalentStrings[playerClass][string.upper(specNames[specID])][addon.GetCurrentMapName()])
+
 end
 
-local function OnAddonCompartmentClick(ADDON_NAME, button)
-    -- Toggle your BiS window here
-    ShowBiSWindow()
-end
-
-local function OnAddonCompartmentEnter(ADDON_NAME)
-    GameTooltip:SetOwner(AddonCompartmentFrame, "ANCHOR_RIGHT")
-    GameTooltip:AddLine("DoIsBIS")
-    GameTooltip:AddLine("Click to open the BiS window", 1, 1, 1)
-    GameTooltip:Show()
-end
-
-local function OnAddonCompartmentLeave(ADDON_NAME)
-    GameTooltip:Hide()
-end
-
-AddonCompartmentFrame:RegisterAddon({
-    text = "DoIsBIS",
-    icon = "Interface\\AddOns\\DoIsBIS\\icon", -- replace with your icon
-    notCheckable = true,
-    func = OnAddonCompartmentClick,
-    tooltipTitle = "DoIsBIS",
-    tooltipText = "Click to open the BiS window",
-    OnEnter = OnAddonCompartmentEnter,
-    OnLeave = OnAddonCompartmentLeave,
-})

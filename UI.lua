@@ -175,7 +175,10 @@ local function CreateBiSWindow()
     f.tabs[3] = CreateTab(f, 3, "Trinkets")
     f.tabs[3]:SetPoint("LEFT", f.tabs[2], "RIGHT", -20, 2)
 
-    PanelTemplates_SetNumTabs(f, 3)
+    f.tabs[4] = CreateTab(f, 4, "Talents")
+    f.tabs[4]:SetPoint("LEFT", f.tabs[3], "RIGHT", -20, 2)
+
+    PanelTemplates_SetNumTabs(f, 4)
     PanelTemplates_SetTab(f, 1)
 
     ---------------------------------------------------
@@ -316,6 +319,10 @@ local function CreateBiSWindow()
     f.tabFrames[3]:SetAllPoints(f)
     f.tabFrames[3]:Hide()
 
+    f.tabFrames[4] = CreateFrame("Frame", nil, f)
+    f.tabFrames[4]:SetAllPoints(f)
+    f.tabFrames[4]:Hide()
+
     function f:SelectTab(id)
         for i, frame in pairs(self.tabFrames) do
             frame:Hide()
@@ -399,6 +406,30 @@ local function BuildTrinketRowsForClassSpec(className, specName)
             local itemLink = select(2, GetItemInfo(data.itemid)) or ("item:" .. data.itemid)
             table.insert(rows, { isHeader = false, text = itemLink, itemID = data.itemid, tier = contentType})
         end
+    end
+
+    return rows
+end
+
+local function BuildTalentRowsForClassSpec(className, specName)
+    local rows = {}
+
+    if not AddonTable or not AddonTable.talents then
+        return rows
+    end
+
+    local classData = AddonTable.talents[className]
+    if not classData then
+        return rows
+    end
+
+    local specData = classData[specName]
+    if not specData then
+        return rows
+    end
+
+    for contentType, talentstring in pairs(specData) do
+        table.insert(rows, { isHeader = false, text = contentType, talentString = talentstring, tier = contentType})
     end
 
     return rows
@@ -527,18 +558,83 @@ local function PopulateTrinketScrollFrame(content, rows)
     content:SetHeight(-yOffset + 10)
 end
 
+local function formateContent(content)
+    if content:find("-") then
+        content = content:gsub("-", " ")
+        content = content:gsub("(%a)(%w*)", function(first, rest)
+            return first:upper() .. rest:lower()
+        end)
+        return content
+    else
+        content = content:gsub("(%a)(%w*)", function(first, rest)
+            return first:upper() .. rest:lower()
+        end)
+        return content
+    end
+end
+
+local function importTalentString(talentString)
+    -- Implementation for importing talent string
+    print("Importing talent string:", talentString)
+end
+
+local function PopulateTalentScrollFrame(content, rows)
+    -- Clear old rows
+    for _, child in ipairs({ content:GetChildren() }) do
+        child:Hide()
+        child:SetParent(nil)
+    end
+
+    local yOffset = -5
+    local width = content:GetParent():GetWidth() - 20
+    --DevTools_Dump(rows)
+
+    for _, row in ipairs(rows) do
+        local rowFrame = CreateFrame("Frame", nil, content)
+        rowFrame:SetPoint("TOPLEFT", 0, yOffset)
+        rowFrame:SetPoint("TOPRIGHT", 0, yOffset)
+        rowFrame:SetHeight(row.isHeader and 24 or 18)
+        rowFrame:EnableMouse(true)
+
+        if row.isHeader then
+            --fs:SetText("|cffFFD100" .. row.text .. "|r")
+            yOffset = yOffset - 26
+        else
+            local talentString = row.talentString
+            local btn = CreateFrame("Button", nil, rowFrame, "UIPanelButtonTemplate")
+            btn:SetPoint("CENTER", 0, 0)
+            btn:SetSize(150, 40)
+            btn:SetText("Import " .. formateContent(row.text))
+
+            btn:SetScript("OnClick", function(self, button, down)
+                importTalentString(talentString)
+            end)
+
+            btn:RegisterForClicks("AnyUp")
+
+            yOffset = yOffset - 40
+        end
+    end
+
+    content:SetHeight(-yOffset + 10)
+
+end
+
 
 local window
 local scrollFrame
 local content
 local TrinketscrollFrame
 local Trinketcontent
+local TalentscrollFrame
+local Talentcontent
 
 local function ShowBiSWindow()
     if not window then
         window = CreateBiSWindow()
         scrollFrame, content = CreateBiSScrollArea(window.tabFrames[2])
         TrinketscrollFrame, Trinketcontent = CreateBiSScrollArea(window.tabFrames[3])
+        TalentscrollFrame, Talentcontent = CreateBiSScrollArea(window.tabFrames[4])
     end
 
     local class, spec = GetPlayerClassSpec()
@@ -569,6 +665,13 @@ local function ShowBiSWindow()
     end
 
     PopulateTrinketScrollFrame(Trinketcontent, Trinketrows)
+
+    local Talentrows = BuildTalentRowsForClassSpec(class, spec)
+    if #Talentrows == 0 then
+        print("BiS: no data for " .. class .. " / " .. spec)
+    end
+
+    PopulateTalentScrollFrame(Talentcontent, Talentrows)
 
     if window then
         window.title:SetText(class .. " - " .. spec)
