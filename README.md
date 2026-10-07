@@ -1,1 +1,1 @@
-# DoIsBIS
+# Ultimate Class Guide
