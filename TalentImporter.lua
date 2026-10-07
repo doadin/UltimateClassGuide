@@ -15,7 +15,7 @@ local version = C_AddOns.GetAddOnMetadata(addonName, "Version")
 --MapName: Theater of Pain mapid: 1683
 --MapName: Undermine mapid: 2406
 
-local currentSeasonInstances = {
+addon.currentSeasonInstances = {
     --["The Rookery"] = "Rookery",
     --["Cinderbrew Meadery"] = "Meadery",
     --["Darkflame Cleft"] = "Darkflame",
@@ -221,8 +221,8 @@ function addon:CheckTalentUpdate(class, spec, CurrentMapName, importString)
     for i,id in ipairs(configIDs) do
         local configInfo = C_Traits.GetConfigInfo(id)
         --print("Config ID:", id, "Name:", configInfo.name)
-        if currentSeasonInstances[CurrentMapName] then
-            if configInfo.name == "UCG " .. currentSeasonInstances[CurrentMapName] .. " " .. version then
+        if addon.currentSeasonInstances[CurrentMapName] then
+            if configInfo.name == "UCG " .. addon.currentSeasonInstances[CurrentMapName] .. " " .. version then
                 local CurimportString = C_Traits.GenerateImportString(id)
                 --print("CurimportString for ", configInfo.name .. " : ", CurimportString)
                 configExists = true
@@ -231,14 +231,14 @@ function addon:CheckTalentUpdate(class, spec, CurrentMapName, importString)
     end
     if not configExists then
         --print("config not found")
-        if addon.talents[class][spec][currentSeasonInstances[CurrentMapName]] then
+        if addon.talents[class][spec][addon.currentSeasonInstances[CurrentMapName]] then
             --print("found update for zone")
             configUpdate = true
         end
     end
     --print("ConfigUpdate: ", configUpdate)
     if configUpdate then
-        local loadoutName = "UCG " .. currentSeasonInstances[CurrentMapName] .. " " .. version
+        local loadoutName = "UCG " .. addon.currentSeasonInstances[CurrentMapName] .. " " .. version
         AskToUpdateTalents(class, spec, loadoutName, importString, CurrentMapName)
     end
 end
@@ -302,7 +302,7 @@ frame:SetScript("OnEvent", function(self, event)
             if not C_AddOns.IsAddOnLoaded("Blizzard_PlayerSpells") then
                 C_AddOns.LoadAddOn("Blizzard_PlayerSpells")
             end
-            --for name in pairs(currentSeasonInstances) do
+            --for name in pairs(addon.currentSeasonInstances) do
             --    CheckTalentUpdate(playerClass,specNames[specID], name , addon.TalentStrings[playerClass][string.upper(specNames[specID])][name])
             --end
             --if addon.talents[playerClass][specNames[specID]][addon.GetCurrentMapName()] then
@@ -311,7 +311,7 @@ frame:SetScript("OnEvent", function(self, event)
             local classTalents = addon.talents[playerClass]
             local specName = specNames[specID]
             local mapName = addon.GetCurrentMapName()
-            local mapNameTable = currentSeasonInstances[addon.GetCurrentMapName()]
+            local mapNameTable = addon.currentSeasonInstances[addon.GetCurrentMapName()]
             --print("Checking talents for class:", playerClass, "spec:", specName, "map:", mapName, "mapNameTable:", mapNameTable)
             
             if classTalents and specName and classTalents[specName] and classTalents[specName][mapNameTable] then
@@ -332,7 +332,7 @@ frame:SetScript("OnEvent", function(self, event)
                             local configInfo = C_Traits.GetConfigInfo(id)
                             --print("Config ID:", id, "Name:", configInfo.name)
                             if configInfo.name == loadoutName then
-                                AskToActivateTalents(id, true, currentSeasonInstances[addon.GetCurrentMapName()])
+                                AskToActivateTalents(id, true, addon.currentSeasonInstances[addon.GetCurrentMapName()])
                             end
                         end
                     end
@@ -346,8 +346,8 @@ frame:SetScript("OnEvent", function(self, event)
     end
     if event == "READY_CHECK" then
         C_Timer.After(3, function()
-            if currentSeasonInstances[addon.GetCurrentMapName()] then
-                local loadoutName = "UCG " .. currentSeasonInstances[addon.GetCurrentMapName()] .. " " .. version
+            if addon.currentSeasonInstances[addon.GetCurrentMapName()] then
+                local loadoutName = "UCG " .. addon.currentSeasonInstances[addon.GetCurrentMapName()] .. " " .. version
                 -- Get the current specialization ID
                 local specID = PlayerUtil.GetCurrentSpecID()
                 if specID then
@@ -363,7 +363,7 @@ frame:SetScript("OnEvent", function(self, event)
                                 local configInfo = C_Traits.GetConfigInfo(id)
                                 --print("Config ID:", id, "Name:", configInfo.name)
                                 if configInfo.name == loadoutName then
-                                    AskToActivateTalents(id, true, currentSeasonInstances[addon.GetCurrentMapName()])
+                                    AskToActivateTalents(id, true, addon.currentSeasonInstances[addon.GetCurrentMapName()])
                                 end
                             end
                         end
@@ -423,10 +423,10 @@ addon.RecheckTalentUpdate = function()
     if not C_AddOns.IsAddOnLoaded("Blizzard_PlayerSpells") then
         C_AddOns.LoadAddOn("Blizzard_PlayerSpells")
     end
-    --for name in pairs(currentSeasonInstances) do
+    --for name in pairs(addon.currentSeasonInstances) do
     --    CheckTalentUpdate(playerClass,specNames[specID], name , addon.TalentStrings[playerClass][string.upper(specNames[specID])][name])
     --end
-    addon:CheckTalentUpdate(playerClass,specNames[specID], currentSeasonInstances[addon.GetCurrentMapName()], addon.TalentStrings[playerClass][string.upper(specNames[specID])][addon.GetCurrentMapName()])
+    addon:CheckTalentUpdate(playerClass,specNames[specID], addon.currentSeasonInstances[addon.GetCurrentMapName()], addon.TalentStrings[playerClass][string.upper(specNames[specID])][addon.GetCurrentMapName()])
 
 end
 
