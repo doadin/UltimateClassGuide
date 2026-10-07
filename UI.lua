@@ -576,9 +576,8 @@ local function formateContent(content)
     end
 end
 
-local function importTalentString(talentString)
+local function importTalentString(talentString, rowText)
     -- Implementation for importing talent string
-    print("Importing talent string:", talentString)
     local _, playerClass = UnitClass("player")
     playerClass = playerClass:gsub("(%a)(%w*)", function(a, b)
         return a:upper() .. b:lower()
@@ -626,11 +625,11 @@ local function importTalentString(talentString)
         [1468] = "Preservation",
         [1473] = "Augmentation",
     }
-    local mapName = addon.GetCurrentMapName()
-    local mapNameTable = addon.currentSeasonInstances[addon.GetCurrentMapName()]
+    local mapName = formateContent(rowText)
+    local mapNameTable = addon.currentSeasonInstances[rowText]
     local specName = specNames[specID]
     local classTalents = addon.talents[playerClass]
-    addon:CheckTalentUpdate(playerClass, specName, mapName, classTalents[specName][mapNameTable])
+    addon:CheckTalentUpdate(playerClass, specName, mapName, classTalents[specName][rowText])
 end
 
 local function PopulateTalentScrollFrame(content, rows)
@@ -662,7 +661,7 @@ local function PopulateTalentScrollFrame(content, rows)
             btn:SetText("Import " .. formateContent(row.text))
 
             btn:SetScript("OnClick", function(self, button, down)
-                importTalentString(talentString)
+                importTalentString(talentString, row.text)
             end)
 
             btn:RegisterForClicks("AnyUp")
