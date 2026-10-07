@@ -598,7 +598,7 @@ f:SetScript("OnEvent", function() --self, event, slot, hasItem
 end)
 
 
-SLASH_SHOWBIS1 = "/doisbis"
+SLASH_SHOWBIS1 = "/ucg"
 SlashCmdList.SHOWBIS = function()
     ShowBiSWindow()
 end
@@ -610,8 +610,8 @@ end
 
 local function OnAddonCompartmentEnter(ADDON_NAME)
     GameTooltip:SetOwner(AddonCompartmentFrame, "ANCHOR_RIGHT")
-    GameTooltip:AddLine("DoIsBIS")
-    GameTooltip:AddLine("Click to open the BiS window", 1, 1, 1)
+    GameTooltip:AddLine("Ultimate Class Guide")
+    GameTooltip:AddLine("Click to open UI", 1, 1, 1)
     GameTooltip:Show()
 end
 
@@ -620,12 +620,12 @@ local function OnAddonCompartmentLeave(ADDON_NAME)
 end
 
 AddonCompartmentFrame:RegisterAddon({
-    text = "DoIsBIS",
-    icon = "Interface\\AddOns\\DoIsBIS\\icon", -- replace with your icon
+    text = "Ultimate Class Guide",
+    icon = "Interface\\AddOns\\UltimateClassGuide\\icon", -- replace with your icon
     notCheckable = true,
     func = OnAddonCompartmentClick,
-    tooltipTitle = "DoIsBIS",
-    tooltipText = "Click to open the BiS window",
+    tooltipTitle = "Ultimate Class Guide",
+    tooltipText = "Click to open UI",
     OnEnter = OnAddonCompartmentEnter,
     OnLeave = OnAddonCompartmentLeave,
 })
