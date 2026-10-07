@@ -1,15 +1,17 @@
 ## Interface: 120001
 ## Version: @project-version@
-## Title: DoIsBIS
-## Notes: Is This Loot BIS?
+## Title: UltimateClassGuide
+## Notes: UltimateClassGuide
 ## Author: Doadin
 ## X-License: All Rights Reserved
 ## X-Website: https://wow.curseforge.com/projects/doisbis/
 ## X-Curse-Project-ID: 1488455
-## IconTexture: Interface\AddOns\DoIsBIS\icon
+## IconTexture: Interface\AddOns\UltimateClassGuide\icon
 
 Data\Midnight\Season2\bis.lua
 Data\Midnight\Season2\stats.lua
+Data\Midnight\Season2\talents.lua
 Data\Midnight\Season2\trinkets.lua
 Core.lua
 UI.lua
+TalentImporter.lua
