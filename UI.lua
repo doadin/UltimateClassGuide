@@ -3,6 +3,8 @@ local ADDON_NAME, AddonTable = ...
 -- Define the addon namespace
 local addonName, addon = ...
 
+local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+
 local idtoclass = {
     [1] = "Warrior",
     [2] = "Paladin",
