@@ -1,5 +1,7 @@
 local _, AddonTable = ...
 
+local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo
+
 local idtoclass = {
     [1] = "Warrior",
     [2] = "Paladin",
